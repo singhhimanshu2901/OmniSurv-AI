@@ -1,0 +1,119 @@
+services:
+  # Relational Database for structured CCTV metadata
+  postgres:
+    image: postgres:16-alpine
+    container_name: omnisurv_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: omnisurv
+      POSTGRES_PASSWORD: omnisurv_secure_pass
+      POSTGRES_DB: omnisurv_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnisurv -d omnisurv_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # In-memory broker for video processing tasks
+  redis:
+    image: redis:7-alpine
+    container_name: omnisurv_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Vector Database for 512D CLIP Visual Embeddings
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    container_name: omnisurv_qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Forensic Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: omnisurv_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://omnisurv:omnisurv_secure_pass@postgres:5432/omnisurv_db
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      API_HOST: "0.0.0.0"
+      API_PORT: 8000
+    volumes:
+      - ./data:/app/data
+      - ./ml/weights:/app/ml/weights
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  # Asynchronous Computer Vision Worker (YOLOv11x + ByteTrack + CLIP)
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: omnisurv_worker
+    restart: unless-stopped
+    command: python -m app.workers.video_worker
+    environment:
+      DATABASE_URL: postgresql://omnisurv:omnisurv_secure_pass@postgres:5432/omnisurv_db
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+    volumes:
+      - ./data:/app/data
+      - ./ml/weights:/app/ml/weights
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  # Forensic Investigation React Dashboard
+  frontend:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: omnisurv_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_WS_URL: ws://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:

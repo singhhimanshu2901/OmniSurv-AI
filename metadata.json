@@ -1,0 +1,6 @@
+{
+  "name": "OmniSurv-AI",
+  "description": "Multimodal Intelligent CCTV Forensic & Event Intelligence System - AI-powered video surveillance, object tracking, vector search, and forensic reasoning platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
