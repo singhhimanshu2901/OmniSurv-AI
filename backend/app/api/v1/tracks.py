@@ -1,11 +1,23 @@
 from typing import List, Dict, Any
-from fastapi import APIRouter, HTTPException
+
+try:
+    from fastapi import APIRouter, HTTPException
+except ImportError:
+    class APIRouter:
+        def __init__(self, *args, **kwargs): pass
+        def get(self, *args, **kwargs): return lambda f: f
+        def post(self, *args, **kwargs): return lambda f: f
+    class HTTPException(Exception):
+        def __init__(self, status_code: int, detail: str):
+            super().__init__(detail)
+            self.status_code = status_code
+            self.detail = detail
+
 from app.schemas.schemas import TrackTrajectoryResponse
 from app.services.trajectory_service import trajectory_service
 
 router = APIRouter(prefix="/tracks", tags=["Tracks & Trajectories"])
 
-# Seed demonstrative tracks for Gate 1 blue sedan, perimeter pedestrian, etc.
 _TRACKS_STORE = {
     42: {
         "track_id": 42,

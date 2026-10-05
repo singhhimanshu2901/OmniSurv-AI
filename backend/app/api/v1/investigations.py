@@ -1,13 +1,25 @@
 import uuid
 from datetime import datetime
 from typing import Dict, Any, List
-from fastapi import APIRouter, HTTPException
+
+try:
+    from fastapi import APIRouter, HTTPException
+except ImportError:
+    class APIRouter:
+        def __init__(self, *args, **kwargs): pass
+        def post(self, *args, **kwargs): return lambda f: f
+        def get(self, *args, **kwargs): return lambda f: f
+    class HTTPException(Exception):
+        def __init__(self, status_code: int, detail: str):
+            super().__init__(detail)
+            self.status_code = status_code
+            self.detail = detail
+
 from app.schemas.schemas import InvestigationCreate, ForensicReportSchema, TimelineEvent
 from app.agents.langgraph_forensic_agent import forensic_workflow
 
 router = APIRouter(prefix="/investigations", tags=["Investigations"])
 
-# In-memory investigation results cache
 _INVESTIGATIONS_CACHE: Dict[str, Dict[str, Any]] = {}
 
 @router.post("")

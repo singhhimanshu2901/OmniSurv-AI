@@ -294,7 +294,7 @@ def forensic_report_generator_node(state: InvestigationState) -> Dict[str, Any]:
             "case_id": f"CASE-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}",
             "investigation_query": query,
             "generated_at": datetime.utcnow().isoformat() + "Z",
-            "executive_summary": "Insufficient visual evidence in the indexed CCTV corpus to establish this finding.",
+            "executive_summary": "Insufficient evidence to establish this finding.",
             "status": "INSUFFICIENT_EVIDENCE",
             "detected_entities": [],
             "timeline": [],

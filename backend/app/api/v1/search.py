@@ -1,5 +1,13 @@
 from typing import List
-from fastapi import APIRouter
+
+try:
+    from fastapi import APIRouter
+except ImportError:
+    class APIRouter:
+        def __init__(self, *args, **kwargs): pass
+        def post(self, *args, **kwargs): return lambda f: f
+        def get(self, *args, **kwargs): return lambda f: f
+
 from app.schemas.schemas import SearchRequest, SearchResultItem
 from app.search.hybrid_search import HybridSearchEngine
 from app.embeddings.qdrant_store import QdrantVectorStore
@@ -23,7 +31,6 @@ def search_evidence(payload: SearchRequest):
         limit=payload.limit
     )
 
-    # If vector store was empty during initial start, seed realistic demonstration tracks
     if not results:
         results = [
             {

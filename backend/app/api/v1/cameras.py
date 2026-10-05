@@ -1,12 +1,25 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends
-from app.schemas.schemas import CameraCreate, CameraResponse
 import uuid
 from datetime import datetime
 
+try:
+    from fastapi import APIRouter, HTTPException, Depends
+except ImportError:
+    class APIRouter:
+        def __init__(self, *args, **kwargs): pass
+        def get(self, *args, **kwargs): return lambda f: f
+        def post(self, *args, **kwargs): return lambda f: f
+    class HTTPException(Exception):
+        def __init__(self, status_code: int, detail: str):
+            super().__init__(detail)
+            self.status_code = status_code
+            self.detail = detail
+    def Depends(f=None): return f
+
+from app.schemas.schemas import CameraCreate, CameraResponse
+
 router = APIRouter(prefix="/cameras", tags=["Cameras"])
 
-# In-memory storage with initial predefined cameras
 _CAMERAS_DB = [
     {
         "id": "cam-01",

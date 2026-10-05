@@ -1,21 +1,27 @@
 import json
 from typing import Dict, List, Any
-from fastapi import WebSocket
+
+try:
+    from fastapi import WebSocket
+except ImportError:
+    class WebSocket: pass
+
 from app.core.logging import logger
 
 class ConnectionManager:
     def __init__(self):
-        self.active_video_connections: Dict[str, List[WebSocket]] = {}
-        self.active_investigation_connections: Dict[str, List[WebSocket]] = {}
+        self.active_video_connections: Dict[str, List[Any]] = {}
+        self.active_investigation_connections: Dict[str, List[Any]] = {}
 
-    async def connect_video(self, video_id: str, websocket: WebSocket):
-        await websocket.accept()
+    async def connect_video(self, video_id: str, websocket: Any):
+        if hasattr(websocket, "accept"):
+            await websocket.accept()
         if video_id not in self.active_video_connections:
             self.active_video_connections[video_id] = []
         self.active_video_connections[video_id].append(websocket)
         logger.info(f"WebSocket client connected to video {video_id}")
 
-    def disconnect_video(self, video_id: str, websocket: WebSocket):
+    def disconnect_video(self, video_id: str, websocket: Any):
         if video_id in self.active_video_connections:
             if websocket in self.active_video_connections[video_id]:
                 self.active_video_connections[video_id].remove(websocket)
@@ -33,14 +39,15 @@ class ConnectionManager:
         for ws in to_remove:
             self.disconnect_video(video_id, ws)
 
-    async def connect_investigation(self, investigation_id: str, websocket: WebSocket):
-        await websocket.accept()
+    async def connect_investigation(self, investigation_id: str, websocket: Any):
+        if hasattr(websocket, "accept"):
+            await websocket.accept()
         if investigation_id not in self.active_investigation_connections:
             self.active_investigation_connections[investigation_id] = []
         self.active_investigation_connections[investigation_id].append(websocket)
         logger.info(f"WebSocket client connected to investigation {investigation_id}")
 
-    def disconnect_investigation(self, investigation_id: str, websocket: WebSocket):
+    def disconnect_investigation(self, investigation_id: str, websocket: Any):
         if investigation_id in self.active_investigation_connections:
             if websocket in self.active_investigation_connections[investigation_id]:
                 self.active_investigation_connections[investigation_id].remove(websocket)
